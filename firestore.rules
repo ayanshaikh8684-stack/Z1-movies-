@@ -1,0 +1,154 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Role-based authorization: checks user's role stored in /users/{uid} or custom claims
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function hasAdminClaim() {
+      return isAuthenticated() && (
+        request.auth.token.role in ['ADMIN', 'SUPER_ADMIN', 'admin', 'super_admin'] ||
+        request.auth.token.admin == true
+      );
+    }
+
+    function isAdmin() {
+      return hasAdminClaim() || (
+        isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        getUserData().role in ['ADMIN', 'SUPER_ADMIN']
+      );
+    }
+
+    function isEditorOrAdmin() {
+      return hasAdminClaim() || (
+        isAuthenticated() &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        getUserData().role in ['EDITOR', 'ADMIN', 'SUPER_ADMIN']
+      );
+    }
+
+    // ===============================================================
+    // 1. MOVIES COLLECTION
+    // Large video files are strictly kept in Cloud Object Storage (HLS/CDN).
+    // Firestore stores authorized stream URLs and movie metadata.
+    // ===============================================================
+    match /movies/{movieId} {
+      // Any user (even unauthenticated) can view published movies
+      // Admins and editors can view all movies (including drafts)
+      allow read: if resource.data.isPublished == true || isEditorOrAdmin();
+
+      // Only editors and admins can create or edit movie metadata
+      allow create: if isEditorOrAdmin() &&
+        request.resource.data.title is string &&
+        request.resource.data.videoUrl is string;
+
+      allow update: if isEditorOrAdmin();
+
+      // Only full admins can delete movies
+      allow delete: if isAdmin();
+    }
+
+    // ===============================================================
+    // 2. CATEGORIES COLLECTION
+    // ===============================================================
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow create, update: if isEditorOrAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ===============================================================
+    // 3. BANNERS COLLECTION (Featured Hero & Promo Banners)
+    // ===============================================================
+    match /banners/{bannerId} {
+      // Public can view active banners; admins can view all
+      allow read: if resource.data.isActive == true || isEditorOrAdmin();
+      allow create, update: if isEditorOrAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ===============================================================
+    // 4. USERS COLLECTION
+    // ===============================================================
+    match /users/{userId} {
+      // Users can read and update their own profile; admins can read/manage all
+      allow read: if isOwner(userId) || isAdmin();
+      
+      // Prevent users from escalating their own role
+      allow create: if isOwner(userId) && (
+        !('role' in request.resource.data) || request.resource.data.role == 'USER'
+      );
+      
+      allow update: if (
+        isOwner(userId) && (
+          !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role', 'membershipTier'])
+        )
+      ) || isAdmin();
+
+      allow delete: if isAdmin();
+    }
+
+    // ===============================================================
+    // 5. WATCH HISTORY
+    // ===============================================================
+    match /watchHistory/{historyId} {
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow create, update: if isAuthenticated() &&
+        request.resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() &&
+        resource.data.userId == request.auth.uid;
+    }
+
+    // ===============================================================
+    // 6. WATCHLIST
+    // ===============================================================
+    match /watchlist/{watchlistId} {
+      allow read: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow create: if isAuthenticated() &&
+        request.resource.data.userId == request.auth.uid;
+      allow delete: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+    }
+
+    // ===============================================================
+    // 7. DOWNLOADS (Tracking user offline licenses)
+    // ===============================================================
+    match /downloads/{downloadId} {
+      allow read, write: if isAuthenticated() && (
+        request.resource.data.userId == request.auth.uid ||
+        resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
+    }
+
+    // ===============================================================
+    // 8. NOTIFICATIONS
+    // ===============================================================
+    match /notifications/{notificationId} {
+      // Users can read global announcements or user-specific notifications
+      allow read: if true;
+      allow update: if isAuthenticated() && (
+        resource.data.userId == request.auth.uid || isAdmin()
+      );
+      allow create, delete: if isEditorOrAdmin();
+    }
+  }
+}

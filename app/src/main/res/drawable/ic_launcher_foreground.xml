@@ -1,0 +1,54 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:aapt="http://schemas.android.com/aapt"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Glowing circular backdrop plate -->
+    <path
+        android:fillColor="#151C2C"
+        android:pathData="M54,24 A30,30 0 1,0 54,84 A30,30 0 1,0 54,24 Z" />
+
+    <!-- Cyan to Blue Gradient Play Arrow and Z1 symbol -->
+    <path
+        android:pathData="M33,36 L51,36 L39,52 L51,52 L51,57 L33,57 L45,41 L33,41 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:angle="45"
+                android:endColor="#00E5FF"
+                android:startColor="#2979FF"
+                android:type="linear" />
+        </aapt:attr>
+    </path>
+
+    <!-- Stylized '1' column -->
+    <path
+        android:pathData="M57,40 L63,36 L66,36 L66,57 L61,57 L61,41 L57,43 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:angle="90"
+                android:endColor="#FFFFFF"
+                android:startColor="#00E5FF"
+                android:type="linear" />
+        </aapt:attr>
+    </path>
+
+    <!-- Electric Play Triangle Icon below / accentuating the cinema vibe -->
+    <path
+        android:pathData="M46,62 L66,72 L46,82 Z">
+        <aapt:attr name="android:fillColor">
+            <gradient
+                android:angle="0"
+                android:endColor="#00E5FF"
+                android:startColor="#7C4DFF"
+                android:type="linear" />
+        </aapt:attr>
+    </path>
+
+    <!-- Mini cinema sparkle dot -->
+    <path
+        android:fillColor="#00E5FF"
+        android:pathData="M73,34 A2.5,2.5 0 1,0 73,39 A2.5,2.5 0 1,0 73,34 Z" />
+
+</vector>

@@ -1,0 +1,6 @@
+{
+  "name": "Z1 Movies",
+  "description": "Z1 Movies: Premium dark cinema movie and video streaming app featuring personalized hero carousels, responsive browsing, full-featured player, categorized explorer, and offline downloads.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
